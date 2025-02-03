@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GIGATECH MP3 Player with 4K Visualizer Project</title>
+  <style>
+    body {
+      background-color: #4B0150;
+      color: #fff;
+      font-family: sans-serif;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      align-items: center; 
+    }
+
+    header {
+      background-color: #064F01;
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+      font-size: 2em;
+      width: 100%; 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #player {
+      text-align: center; 
+      margin-bottom: 20px; 
+    }
+
+    #output {
+      margin-bottom: 10px; 
+    }
+
+    #visualizer {
+      width: 72vw; 
+      height: calc(80vh - 180px); 
+      background-color: #000;
+    }
+
+    footer {
+      background-color: #064F01;
+      color: #fff;
+      padding: 10px;
+      text-align: center;
+      font-size: 0.8em;
+      width: 100%; 
+    }
+
+    footer a {
+      color: #ddd;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    GIGATECH MP3 Player with 4K Visualizer Project
+    <input type="file" id="fileInput" accept="audio/mpeg"> 
+  </header>
+
+  <div id="output"></div>
+
+  <div id="player"> 
+    <audio id="audio" controls></audio>
+  </div>
+
+  <canvas id="visualizer"></canvas>
+
+  <footer>
+    <p>Contact: <a href="mailto:giga832065@gmail.com">giga832065@gmail.com</a></p>
+  </footer>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const audio = document.getElementById('audio');
+    const canvas = document.getElementById('visualizer');
+    const ctx = canvas.getContext('2d');
+    const output = document.getElementById('output');
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        audio.src = e.target.result;
+
+        output.textContent = `Playing: ${file.name}`; 
+
+        // Create AudioContext and connect to Analyser
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaElementSource(audio);
+        const analyser = audioCtx.createAnalyser();
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+
+        analyser.fftSize = 2048;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        audio.play(); // Autoplay
+
+        // Visualization loop
+        function draw() {
+          requestAnimationFrame(draw);
+
+          analyser.getByteTimeDomainData(dataArray);
+
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; 
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = 'rgb(0, 255, 0)';
+
+          ctx.beginPath();
+
+          let sliceWidth = (canvas.width * 1.0) / bufferLength;
+          let x = 0;
+
+          for(var i = 0; i < bufferLength; i++) {
+            let v = dataArray[i] / 128.0;
+            let y = v * canvas.height/2;
+
+            if(i === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+
+            x += sliceWidth;
+          }
+
+          ctx.lineTo(canvas.width, canvas.height/2);
+          ctx.stroke();
+        }
+
+        draw();
+      };
+
+      reader.readAsDataURL(file);
+    });
+  </script>
+
+</body>
+</html>
